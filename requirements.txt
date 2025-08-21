@@ -1,0 +1,6 @@
+flask
+numpy
+Pillow
+pydicom
+torch
+transformers
