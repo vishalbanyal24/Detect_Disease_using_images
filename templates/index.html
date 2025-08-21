@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Disease Prediction System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
+</head>
+<body>
+    <div class="container-fluid">
+        <!-- Header -->
+        <header class="bg-danger text-white text-center py-4 mb-4">
+            <div class="container">
+                <h1><i class="fas fa-lungs me-3"></i>Disease Prediction System</h1>
+                <p class="lead">Chest CT scan analysis using Vision Transformers</p>
+            </div>
+        </header>
+
+        <div class="container">
+            <div class="row">
+                <!-- Upload Section -->
+                <div class="col-lg-6">
+                    <div class="card shadow-lg">
+                        <div class="card-header bg-info text-white">
+                            <h4><i class="fas fa-upload me-2"></i>Upload Medical Image</h4>
+                        </div>
+                        <div class="card-body">
+                            <form id="uploadForm" method="POST" action="/upload" enctype="multipart/form-data">
+                                <div class="mb-3">
+                                    <label for="imageFile" class="form-label">Select Chest CT Image (DICOM/PNG/JPG):</label>
+                                    <div id="dropzone" class="dropzone mb-3" role="button">
+                                        <div class="dz-icon"><i class="fas fa-cloud-upload-alt"></i></div>
+                                        <div class="dz-text">Drag & drop CT image here or click to select</div>
+                                        <div class="dz-subtext">DICOM CT (.dcm) recommended for highest accuracy</div>
+                                    </div>
+                                    <input type="file" class="form-control" id="imageFile" name="file" accept=".dcm,image/png,image/jpeg" required>
+                                    <div class="form-text">Accepts DICOM CT (.dcm) or PNG/JPG up to 16MB. DICOM CT provides the most accurate results.</div>
+                                </div>
+
+                                <div id="clientPreviewBox" class="preview-box d-none">
+                                    <div class="d-flex align-items-center">
+                                        <img id="clientPreview" class="preview-img me-3" alt="Preview">
+                                        <div>
+                                            <div id="previewFilename" class="fw-semibold"></div>
+                                            <small id="previewNote" class="text-muted"></small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button id="analyzeBtn" type="submit" class="btn btn-primary btn-lg w-100 mt-3" disabled>
+                                    <span class="btn-label"><i class="fas fa-brain me-2"></i>Analyze Image</span>
+                                    <span class="btn-spinner spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results Section -->
+                <div class="col-lg-6">
+                    <div class="card shadow-lg">
+                        <div class="card-header bg-success text-white">
+                            <h4><i class="fas fa-chart-line me-2"></i>Analysis Results</h4>
+                        </div>
+                        <div class="card-body">
+                            {% if result %}
+                                <!-- Primary Result -->
+                                <div class="alert alert-primary" role="alert">
+                                    <h5 class="alert-heading">
+                                        <i class="fas fa-diagnosis me-2"></i>Primary Diagnosis
+                                    </h5>
+                                    <h3 class="text-primary mb-2">{{ result.predicted_disease }}</h3>
+                                    <p class="mb-0">
+                                        <strong>Confidence:</strong> 
+                                        <span class="badge bg-primary fs-6">{{ result.confidence }}%</span>
+                                    </p>
+                                </div>
+
+                                <!-- All Predictions -->
+                                <div class="mt-4">
+                                    <h5><i class="fas fa-list-ul me-2"></i>All Class Probabilities</h5>
+                                    {% for prediction in result.all_predictions %}
+                                    <div class="mb-3">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <span class="fw-bold {% if loop.index0 == 0 %}text-success{% endif %}">{{ prediction.disease }}</span>
+                                            <span class="text-muted">{{ "%.1f"|format(prediction.confidence * 100) }}%</span>
+                                        </div>
+                                        <div class="confidence-bar">
+                                            <div class="confidence-fill" style="width: {{ prediction.confidence * 100 }}%; background: hsl({{ (1 - prediction.confidence) * 120 }}, 85%, 50%);">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+
+                                <!-- Uploaded Image Preview -->
+                                {% if result.preview_filename %}
+                                <div class="mt-4">
+                                    <h5><i class="fas fa-image me-2"></i>Uploaded Image</h5>
+                                    <img src="{{ url_for('static', filename='uploads/' + result.preview_filename) }}" 
+                                         class="img-fluid rounded" style="max-height: 200px;">
+                                </div>
+                                {% endif %}
+                            {% else %}
+                                <!-- Initial State -->
+                                <div class="text-center text-muted">
+                                    <i class="fas fa-arrow-left fa-3x mb-3"></i>
+                                    <p>Upload a chest CT scan image to get started with AI-powered disease prediction.</p>
+                                </div>
+                            {% endif %}
+
+                            <!-- Error Messages -->
+                            {% if error %}
+                            <div class="alert alert-danger" role="alert">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                {{ error }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Information Section -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card shadow">
+                        <div class="card-header bg-warning text-dark">
+                            <h4><i class="fas fa-info-circle me-2"></i>About This System</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <h5><i class="fas fa-robot text-primary"></i> AI Technology</h5>
+                                    <p>Uses a Vision Transformer (ViT) to classify chest CT images and shows confidence and top predictions.</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <h5><i class="fas fa-file-medical text-info"></i> Supported Formats</h5>
+                                    <p><strong>DICOM CT (.dcm)</strong> recommended for best accuracy. PNG/JPG are accepted if they look medical (CT/X-ray-like).</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="bg-dark text-white text-center py-3 mt-5">
+            <div class="container">
+                <p>Developed by: Vishal Banyal</p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    (function() {
+        const dropzone = document.getElementById('dropzone');
+        const fileInput = document.getElementById('imageFile');
+        const previewBox = document.getElementById('clientPreviewBox');
+        const previewImg = document.getElementById('clientPreview');
+        const previewFilename = document.getElementById('previewFilename');
+        const previewNote = document.getElementById('previewNote');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const form = document.getElementById('uploadForm');
+
+        function setButtonLoading(loading) {
+            const spinner = analyzeBtn.querySelector('.btn-spinner');
+            const label = analyzeBtn.querySelector('.btn-label');
+            if (loading) {
+                analyzeBtn.disabled = true;
+                spinner.classList.remove('d-none');
+                label.classList.add('opacity-75');
+            } else {
+                spinner.classList.add('d-none');
+                label.classList.remove('opacity-75');
+            }
+        }
+
+        function enableAnalyze(enabled) {
+            analyzeBtn.disabled = !enabled;
+        }
+
+        function handleFiles(files) {
+            if (!files || !files.length) return;
+            const file = files[0];
+            const name = file.name || '';
+            const type = file.type || '';
+            const isPngJpg = type === 'image/png' || type === 'image/jpeg' || name.toLowerCase().endsWith('.png') || name.toLowerCase().endsWith('.jpg') || name.toLowerCase().endsWith('.jpeg');
+            const isDicom = name.toLowerCase().endsWith('.dcm');
+
+            previewFilename.textContent = name;
+
+            if (isPngJpg) {
+                const url = URL.createObjectURL(file);
+                previewImg.src = url;
+                previewImg.classList.remove('d-none');
+                previewNote.textContent = 'Client-side preview (PNG/JPG). For best accuracy, use CT DICOM (.dcm).';
+                previewBox.classList.remove('d-none');
+            } else if (isDicom) {
+                // No client-side DICOM render; show filename only
+                previewImg.src = '';
+                previewImg.classList.add('d-none');
+                previewNote.textContent = 'DICOM (.dcm) detected. Preview will be shown after analysis.';
+                previewBox.classList.remove('d-none');
+            } else {
+                previewBox.classList.add('d-none');
+            }
+            enableAnalyze(true);
+        }
+
+        // Dropzone interactions
+        dropzone.addEventListener('click', () => fileInput.click());
+        dropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropzone.classList.add('dragover');
+        });
+        dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+        dropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropzone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files && files.length) {
+                fileInput.files = files;
+                handleFiles(files);
+            }
+        });
+
+        // Input change
+        fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+
+        // Form submit
+        form.addEventListener('submit', () => {
+            setButtonLoading(true);
+        });
+    })();
+    </script>
+</body>
+</html> 
