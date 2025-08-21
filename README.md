@@ -4,9 +4,7 @@ Minimal Flask app that loads a pre-trained Vision Transformer (ViT) and predicts
 
 ## Quick Start
 
-FLASK_APP=app.py flask run --host=0.0.0.0 --port=8080
-# or
-uvicorn app:app --host=0.0.0.0 --port=8080
+web: python main.py
 
 1. Create a virtual environment (optional)
    ```bash
