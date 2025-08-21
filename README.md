@@ -8,8 +8,8 @@ web: python app.py
 
 1. Create a virtual environment (optional)
    ```bash
-   python -m venv myvenv
-   myvenv\Scripts\activate  # Windows
+   #python -m venv myvenv
+   #myvenv\Scripts\activate  # Windows
    # source myvenv/bin/activate  # macOS/Linux
    ```
 
