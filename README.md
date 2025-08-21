@@ -4,7 +4,7 @@ Minimal Flask app that loads a pre-trained Vision Transformer (ViT) and predicts
 
 ## Quick Start
 
-web: python main.py
+web: python app.py
 
 1. Create a virtual environment (optional)
    ```bash
