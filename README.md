@@ -9,7 +9,6 @@ Minimal Flask app that loads a pre-trained Vision Transformer (ViT) and predicts
    ```bash
    # python -m venv myvenv
    web: python app.py
-   #web: python app.py
    # myvenv\Scripts\activate  # Windows
    # source myvenv/bin/activate  # macOS/Linux
    ```
@@ -21,7 +20,7 @@ Minimal Flask app that loads a pre-trained Vision Transformer (ViT) and predicts
 
 3. Run the app
    ```bash
-   python app.py
+   web: python app.py
    ```
 
 4. Open your browser at `http://localhost:5000` and upload an image (PNG/JPG or DICOM).
